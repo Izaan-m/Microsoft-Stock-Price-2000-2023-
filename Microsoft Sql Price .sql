@@ -1,0 +1,121 @@
+Create database Projects;
+#download data from Kaggle.com. data name = Microsoft Stock prices
+#Imprt the Excel CSV file into SQL
+#Create table
+select * from msft;
+#What is the average closing price of Microsoft stock over the entire period.
+SELECT AVG(Close) AS average_closing_price
+FROM MSFT;
+#Identify the date with the highest trading volume for Microsoft stock.
+select date, max(volume) as max_volume from msft
+group by date
+order by max_volume desc
+limit 1;
+#Calculate the average adjusted closing price on a yearly basis.
+SELECT YEAR(date) AS year, round(AVG(adj_close),2) AS average_adjusted_closing_price
+FROM MSFT
+GROUP BY YEAR(date);
+#Find the top 5 dates with the largest percentage change in closing price compared to the previous day
+select * from msft;
+-- ----#lag is used to find the previous price
+select date, close,
+lag(close) over (order by date) as previous_closing_price,
+(close - lag(close) over (order by date)) /lag(close) over (order by date) * 100 as perct_change
+ from msft
+ order by perct_change desc
+limit 5;
+
+#Determine the overall trend in Microsoft stock prices over the years (e.g., increasing, decreasing, or stable).
+select * from msft;
+SELECT
+  CASE 
+    WHEN close > 350 THEN 'High'
+    WHEN close > 300 AND close <= 350 THEN 'High_Med'
+    WHEN close > 200 AND close <= 300 THEN 'High_Low'
+    WHEN close > 150 AND close <= 200 THEN 'Low_High'
+    WHEN close > 100 AND close <= 150 THEN 'Low_Med'
+    WHEN close > 50 AND close <= 100 THEN 'Low_Med'
+    WHEN close > 0 AND close <= 50 THEN 'Low_Low'
+    ELSE NULL
+  END AS price_category
+FROM msft;
+
+alter table msft
+add Column price_trend varchar(50);
+
+update msft
+set price_trend =
+CASE 
+    WHEN close > 350 THEN 'High'
+    WHEN close > 300 AND close <= 350 THEN 'High_Med'
+    WHEN close > 200 AND close <= 300 THEN 'High_Low'
+    WHEN close > 150 AND close <= 200 THEN 'Low_High'
+    WHEN close > 100 AND close <= 150 THEN 'Low_Med'
+    WHEN close > 50 AND close <= 100 THEN 'Low_Med'
+    WHEN close > 0 AND close <= 50 THEN 'Low_Low'
+    ELSE NULL
+  END;
+
+
+SELECT
+  MIN(date) AS start_date,
+  MAX(date) AS end_date,
+  price_trend
+FROM (
+  SELECT
+    date,
+    CASE
+      WHEN close > 350 THEN 'High'
+      WHEN close > 300 AND close <= 350 THEN 'High_Med'
+      WHEN close > 200 AND close <= 300 THEN 'High_Low'
+      WHEN close > 150 AND close <= 200 THEN 'Low_High'
+      WHEN close > 100 AND close <= 150 THEN 'Low_Med'
+      WHEN close > 50 AND close <= 100 THEN 'Low_Med'
+      WHEN close > 0 AND close <= 50 THEN 'Low_Low'
+      ELSE NULL
+    END AS price_trend
+  FROM
+    msft
+) AS categorized_data
+GROUP BY
+  price_trend
+ORDER BY
+  start_date;
+
+
+#What is the highest closing price recorded, and on which date did it occur?
+select date, max(close) as max_closing_price from msft 
+group by date
+order by max_closing_price desc
+limit 1;
+
+#Analyze the correlation between opening and closing prices for Microsoft stock.
+select avg(open * close) / (stddev(open) * stddev(close)) as correlation
+from msft;
+
+#Identify the day with the lowest adjusted closing price and its corresponding volume.
+select date, volume, min(adj_close) from msft
+where adj_close = (select min(adj_close) from msft)
+group by date, volume
+order by volume, date asc
+limit 1;
+
+
+#Calculate the average daily price range (difference between high and low prices) for Microsoft stock.
+
+
+SELECT
+  AVG(high - low) AS average_daily_price_range
+FROM
+  msft;
+
+
+#Explore the distribution of trading volume using descriptive statistics.
+select
+count(*) as total_trade,
+min(volume) as min_volume,
+max(volume) as max_volume,
+avg(volume) as avg_volume,
+sum(volume) as total_volume,
+stddev(volume) as std_volume
+from msft
